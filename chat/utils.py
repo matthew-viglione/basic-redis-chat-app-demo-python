@@ -47,31 +47,27 @@ def hmget(key, key2):
     return list(map(lambda x: x.decode("utf-8"), result))
 
 
-def get_private_room_id(user1, user2):
-    if math.isnan(user1) or math.isnan(user2) or user1 == user2:
-        return None
-    min_user_id = user2 if user1 > user2 else user1
-    max_user_id = user1 if user1 > user2 else user2
-    return f"{min_user_id}:{max_user_id}"
+def get_private_room_id(*users):
+    for user in users:
+        if math.isnan(user):
+            return None
+    return sorted(users).join(":")
 
 
-def create_private_room(user1, user2):
+def create_private_room(*users):
     """Create a private room and add users to it"""
-    room_id = get_private_room_id(user1, user2)
+    room_id = get_private_room_id(users)
     if not room_id:
         return None, True
 
     # Add rooms to those users
-    redis_client.sadd(f"user:{user1}:rooms", room_id)
-    redis_client.sadd(f"user:{user2}:rooms", room_id)
+    for user in users:
+        redis_client.sadd(f"user:{user}:rooms", room_id)
 
     return (
         {
             "id": room_id,
-            "names": [
-                hmget(f"user:{user1}", "username"),
-                hmget(f"user:{user2}", "username"),
-            ],
+            "names": [hmget(f"user:{user}", "username") for user in users],
         },
         False,
     )
@@ -90,6 +86,7 @@ def init_redis():
 
         demo_data.create()
 
+
 # We use event stream for pub sub. A client connects to the stream endpoint and listens for the messages
 
 
@@ -103,6 +100,9 @@ def event_stream():
             continue
 
         data = "data:  %s\n\n" % json.dumps(
-            {"type": message_parsed["type"], "data": message_parsed["data"],}
+            {
+                "type": message_parsed["type"],
+                "data": message_parsed["data"],
+            }
         )
         yield data

@@ -75,10 +75,7 @@ def io_on_message(message):
         ids = room_id.split(":")
         msg = {
             "id": room_id,
-            "names": [
-                utils.hmget(f"user:{ids[0]}", "username"),
-                utils.hmget(f"user:{ids[1]}", "username"),
-            ],
+            "names": [utils.hmget(f"user:{id}", "username") for id in ids],
         }
         publish("show.room", msg, broadcast=True)
     utils.redis_client.zadd(room_key, {message_string: int(message["date"])})

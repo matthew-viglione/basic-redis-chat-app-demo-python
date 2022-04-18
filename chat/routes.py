@@ -111,16 +111,10 @@ def get_rooms_for_user_id(user_id=0):
                 continue
 
             user_ids = room_id.split(":")
-            if len(user_ids) != 2:
-                return jsonify(None), 400
-
             rooms.append(
                 {
                     "id": room_id,
-                    "names": [
-                        utils.hmget(f"user:{user_ids[0]}", "username"),
-                        utils.hmget(f"user:{user_ids[1]}", "username"),
-                    ],
+                    "names": [utils.hmget(f"user:{id}", "username") for id in user_ids],
                 }
             )
         else:
